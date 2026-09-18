@@ -1,0 +1,256 @@
+---
+title: "hw1"
+author: "Lai Wei"
+format: html
+editor: visual
+---
+
+## Problem 1 - Exploratory Analysis of Soybean Cultivars
+
+# a.
+
+Import the data
+
+```{r}
+soybean <- read.table("data/forty+soybean+cultivars+from+subsequent+harvests/data.csv", sep = ",", header = TRUE)
+```
+
+# b.
+
+Using the information provided in the dataset documentation: Verify that there are 320 observations in the dataset; 40 distinct cultivars; all the observations were collected from two seasons. Produce a table showing the number of observations from each season.
+
+```{r}
+total_obs <- nrow(soybean)
+num_cultivars <- length(unique(soybean$Cultivar))
+num_seasons <- length(unique(soybean$Season))
+season_table <- table(soybean$Season)
+cat("The total observations is", nrow(soybean), "\n",
+           "Number of distinct cultivars is", length(unique(soybean$Cultivar)), "\n",
+           "Number of seasons is", length(unique(soybean$Season)), "\n")
+season_table
+```
+
+# c.
+
+1.  What is the correlation between plant height (PH) and grain yield (GY)?
+
+```{r}
+corr <- cor(soybean$PH, soybean$GY, use = "complete.obs")
+cat("Correlation between PH and GY is", round(corr, 4), "\n\n")
+```
+
+2.  Calculate the correlation between PH and GY separately for each season. Which season has the higher correlation?
+
+```{r}
+cor_season1 <- cor(soybean$PH[soybean$Season == 1], soybean$GY[soybean$Season == 1], use = "complete.obs")
+cor_season2 <- cor(soybean$PH[soybean$Season == 2], soybean$GY[soybean$Season == 2], use = "complete.obs")
+cat("Correlation between PH and GY in Season 1 is", round(cor_season1, 4), "\n")
+cat("Correlation between PH and GY in Season 2 is", round(cor_season2, 4), "\n")
+if (cor_season1 > cor_season2) {cat("Season 1 has the higher correlation.\n\n")
+  }else if (cor_season2 > cor_season1) {cat("Season 2 has the higher correlation.\n\n")
+  } else {cat("Both seasons have equal correlation.\n\n")}
+```
+
+3.  What is the grain yield of the soybean observation with the greatest plant height?
+
+```{r}
+max_PH <- max(soybean$PH, na.rm = TRUE)
+GY_with_maxPH <- soybean$GY[which.max(soybean$PH)]
+cat("Grain yield (GY) at the observation with the greatest plant height is", round(GY_with_maxPH, 2), "\n\n")
+```
+
+4.  What percentage of observations have a thousand seed weight (MHG) greater than the overall average thousand seed weight?
+
+```{r}
+average_MHG <- mean(soybean$MHG, na.rm = TRUE)
+above_average <- sum(soybean$MHG > average_MHG, na.rm = TRUE)
+percent_above <- above_average / total_obs * 100
+cat("Overall average MHG is", round(average_MHG, 2),
+    "\nObservations with MHG > average:", above_average, "out of", total_obs,
+    "\nPercentage =", round(percent_above, 2), "%")
+```
+
+5.  Which cultivar has the highest average grain yield?
+
+```{r}
+average_GY_by_cultivar <- aggregate(GY ~ Cultivar, data = soybean, FUN = mean, na.rm = TRUE)
+max_average_GY <- max(average_GY_by_cultivar$GY)
+best_cultivar <- average_GY_by_cultivar$Cultivar[which(average_GY_by_cultivar$GY == max_average_GY)]
+cat("Cultivar with the highest average grain yield:", best_cultivar)
+```
+
+# d.
+
+Create a table showing the average value of each quantitative variable
+
+```{r}
+vars <- c("PH", "IFP", "NLP", "NGP", "NGL", "NS", "MHG", "GY")
+overall_mean <- colMeans(soybean[, vars], na.rm = TRUE)
+overall_row <- data.frame(Group = "Overall", t(overall_mean))
+season_mean <- aggregate(soybean[, vars], by = list(Season = soybean$Season), FUN = mean, na.rm = TRUE)
+season_mean <- data.frame(Group = paste("Season", season_mean$Season), season_mean[, vars])
+table_average <- rbind(overall_row, season_mean)
+print(table_average)
+```
+
+# e.
+
+Carry out a series of t-tests to examine whether the grain yield (GY) differs between the two seasons.
+
+Null hypothesis_H0: The mean grain yields of the two seasons are equal Alternative hypothesis_H1: The mean grain yields of the two seasons are not equal
+
+```{r}
+GY_season1 <- soybean$GY[soybean$Season == 1]
+GY_season2 <- soybean$GY[soybean$Season == 2]
+t_test_result <- t.test(GY_season1, GY_season2)
+t_test_result
+```
+
+The p-value is `r round(t_test_result$p.value, 4)`, which is greater than 0.05. Therefore, we fail to reject the null hypothesis. There is no statistically significant difference in grain yield between the two seasons.
+
+## Problem 2 - Adult Income Dataset
+# a.
+Import the data into a data.frame in R. As with the previous data, you may download the data outside of your submission, but importation should take place inside the problem set submission. ß
+```{r}
+adult <- read.table("data/adult/adult.data", sep = ",", header = FALSE)
+```
+
+# b.
+Clean and simplify the variable names.
+```{r}
+names(adult) <- c("age","workclass","fnlwgt","education","education_num","marital_status","occupation","relationship","race","sex","capital_gain","capital_loss","hours_per_week","native_country","income")
+```
+
+# c.
+Examine missing values. Report the number of missing observations for each variable.
+```{r}
+adult[adult == " ?"] <- NA
+miss_value <- sapply(adult, function(x) sum(is.na(x)))
+print(miss_value)
+```
+
+# d.
+Restrict the sample to individuals working at least 10 hours per week. Confirm the sample size before and after filtering.
+```{r}
+n_before<-nrow(adult)
+adult_1<-adult[adult$hours_per_week >= 10, ]
+n_after<-nrow(adult_restrict)
+cat("The sample size before filtering is", n_before,
+    "\nThe sample size after filtering is", n_after)
+```
+
+# e.
+Remove observations with missing values for occupation, workclass, or native country. Explain why.
+```{r}
+adult_2<-adult_1[!is.na(adult_1$occupation)&!is.na(adult_1$workclass)&!is.na(adult_1$native_country),]
+```
+Use !is.na()to find non-missing values for occupation, workclass and native_country in adult.
+Use & to make all three conditions true.
+And the requirement only need us to remove observations from these three variates, so we do not to limit columns, so in function "adult[,]", we do not need to write any code after ",".
+
+# f.
+Eliminate any observations with: age less than 18, age greater than 90, education level identified as Preschool.
+```{r}
+adult_3<-adult_2[adult_2$age<=90&adult_2$age>=18&adult_2$education!="Preschool",]
+```
+
+# g.
+Report your final sample size.
+```{r}
+final_size<-nrow(adult_3)
+cat("The final sample size is",final_size)
+```
+
+## Problem 3 - Happy Numbers
+
+# a.
+Write a function nextHappy() that given a positive integer, computes the next value in the happy-number sequence.
+```{r}
+#' nextHappy
+#'
+#' @param input a positive integer
+#'
+#' @returns output a positive integer, the sum of the squares of the digits of input
+nextHappy<-function(input){
+  if(length(input) != 1 | !is.numeric(input) | is.na(input) | input <= 0 || input %% 1 != 0) {
+    stop("Input must be a positive integer.")
+  }
+  output<-0
+  while(input>0){
+    last_digit<-input%%10
+    output<-output+last_digit^2
+    input<-input%/%10
+  }
+  output
+}
+nextHappy(19)
+nextHappy(82)
+```
+
+# b.
+Create a function happySequence() that returns the sequence beginning at a given number. Use your nextHappy() function to perform the calculation.
+```{r}
+#' Title
+#'
+#' @param input A positive integer
+#'
+#' @returns output A list containing: 
+#'          sequence: A vector containing the values in the Happy sequence, beginning with the input               value and ending at 1 if the number is happy. 
+#'          isHappy: A logical value indicating whether the input is a happy number (TRUE if the                  sequence reaches 1, FALSE otherwise).
+happySequence<-function(input){
+  if(length(input) != 1 | !is.numeric(input) | is.na(input) | input <= 0 || input %% 1 != 0) {
+    stop("Input must be a positive integer.")
+  }
+  seq<-c(input)
+  num<-input
+  is_happy<-FALSE
+  while (num != 1) {
+    num <- nextHappy(num)
+    if (num %in% seq) {
+      break  
+    }
+    seq <- c(seq,num)
+  }
+  if (num == 1) {
+    is_happy <- TRUE
+  }
+  if (is_happy == FALSE) {
+    return(list(isHappy = FALSE))
+  } else {
+    return(list(sequence = seq, isHappy = TRUE))
+}}
+happySequence(19)
+happySequence(4)
+```
+
+# c.
+Among integers 1 through 1000:
+How many are happy?
+What percentage are happy?
+What starting value produces the longest happy sequence before terminating?
+```{r}
+happy <- 0
+max_length <- 0
+longest_start <- NA
+
+for (i in 1:1000) {
+  a <- happySequence(i)
+  
+  if (a$isHappy==TRUE) {
+    happy <- happy + 1
+    seq_len <- length(a$sequence)
+    
+    if (seq_len > max_length) {
+      max_length <- seq_len
+      longest_start <- i
+    }
+  }
+}
+
+percent_happy <- happy / 1000 * 100
+
+cat("Number of happy numbers between 1 and 1000 is", happy, "\n")
+cat("Percentage of happy numbers is", round(percent_happy, 2), "%\n")
+cat("Starting value with the longest happy sequence:", longest_start, "\n")
+```
+
