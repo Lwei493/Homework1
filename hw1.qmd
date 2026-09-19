@@ -170,7 +170,7 @@ And the requirement only need us to remove observations from these three variate
 Eliminate any observations with: age less than 18, age greater than 90, education level identified as Preschool.
 ```{r}
 #| echo: true
-adult_3 <- adult_2[adult_2$age<=90 & adult_2$age>=18 & adult_2$education!="Preschool",]
+adult_3 <- adult_2[adult_2$age <= 90 & adult_2$age >= 18 & adult_2$education != "Preschool",]
 ```
 
 # g.
@@ -254,7 +254,7 @@ What starting value produces the longest happy sequence before terminating?
 #| echo: true
 happy <- 0
 max_length <- 0
-longest_start <- NA
+longest_starts <- c()
 
 for (i in 1:1000) {
   a <- happySequence(i)
@@ -262,9 +262,12 @@ for (i in 1:1000) {
   if (a$isHappy == TRUE) {
     happy <- happy + 1
     seq_len <- length(a$sequence)
+    
     if (seq_len > max_length) {
       max_length <- seq_len
-      longest_start <- i
+      longest_starts <- i
+    } else if(seq_len == max_length){
+      longest_starts <- c(longest_starts,i)
     }
   }
 }
@@ -273,6 +276,6 @@ percent_happy <- happy / 1000 * 100
 
 cat("Number of happy numbers between 1 and 1000 is", happy, "\n")
 cat("Percentage of happy numbers is", round(percent_happy, 2), "%\n")
-cat("Starting value with the longest happy sequence:", longest_start, "\n")
+cat("Starting value with the longest happy sequence:", longest_starts, "\n")
 ```
 
